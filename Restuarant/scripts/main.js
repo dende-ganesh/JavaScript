@@ -2,7 +2,6 @@
 function displayMenu(menuItems) {
     menu = document.querySelector('.Menu');
     for (let item of menuItems) {
-        // console.log(item["name"]);
         let itemCard = document.createElement('div');
         itemCard.setAttribute('draggable', true);
         let itemName = document.createElement('h3');
@@ -19,13 +18,13 @@ function displayMenu(menuItems) {
         itemCard.appendChild(category);
         menu.appendChild(itemCard);
     }
-
 }
 displayMenu(menuItems);
+
+
 //display tables
 (function displayTables(tables) {
     let tableElement = document.querySelector('.Table');
-    // console.log(tableElement);
     for (let table of tables) {
         let tableCard = document.createElement('div');
         tableCard.setAttribute('ondragover', 'allowdrag(event)')
@@ -48,7 +47,7 @@ displayMenu(menuItems);
     }
 
 })(tables);
-// document.addEventListener('onload',displayTables(tables));
+
 
 
 
@@ -85,25 +84,17 @@ searchTable.addEventListener('keyup', () => {
     }
 }
 );
-function allowdrag(ev) {
-    ev.preventDefault();
-}
-//dragging
-let draggables = document.querySelectorAll('.fooditems');
-let enterIntoTables = document.querySelectorAll('.tables');
-// console.log(enterIntoTables);
 
-for (let drag of draggables) {
-    drag.addEventListener('dragstart', (ev) => {
-        ev.dataTransfer.setData("text", ev.target.id);
-        drag.classList.add('dragging');
-    })
-    drag.addEventListener('dragend', () => {
-        drag.classList.remove('dragging');
-    })
-}
+
+//itemPrice map
+let itemPrice = new Map();
+menuItems.forEach(item => {
+    itemPrice.set(item.name, item.price)
+});
+
+
+//count Quantity and count Total
 function countQuantity(table) {
-    // console.log(table);
     let total = 0;
     const iterator = table.orders.values();
     let next = iterator.next().value;
@@ -114,6 +105,31 @@ function countQuantity(table) {
     return total;
 
 }
+function calculateTotal(foodOrders) {
+    let total = 0;
+    for (let order of foodOrders) {
+        total += itemPrice.get(order[0]) * Number(order[1]);
+    }
+    return total;
+}
+
+
+//dragging
+function allowdrag(ev) {
+    ev.preventDefault();
+}
+let draggables = document.querySelectorAll('.fooditems');
+let enterIntoTables = document.querySelectorAll('.tables');
+for (let drag of draggables) {
+    drag.addEventListener('dragstart', (ev) => {
+        ev.dataTransfer.setData("text", ev.target.id);
+        drag.classList.add('dragging');
+    })
+    drag.addEventListener('dragend', () => {
+        drag.classList.remove('dragging');
+    })
+}
+//drag drop
 enterIntoTables.forEach(table => {
     table.addEventListener('drop', (e) => {
         let itemId = e.dataTransfer.getData("text");
@@ -123,8 +139,6 @@ enterIntoTables.forEach(table => {
         let id = Number(table.getAttribute('id')) - 1;
         let cost = table.children[1].children[0];
         let noOfItems = table.children[1].children[1];
-        tables[id].totalCost += Number(itemPrice.slice(1,));
-        cost.textContent = `Rs ${tables[id].totalCost}`;
         let orderlist = tables[id].orders;
         if (orderlist.get(itemName) == null) {
             orderlist.set(itemName, 1);
@@ -133,92 +147,85 @@ enterIntoTables.forEach(table => {
             orderlist.set(itemName, Number(orderlist.get(itemName)) + 1);
         }
         noOfItems.textContent = `Total Items:${countQuantity(tables[id])}`;
-        // console.log(tables);
+        cost.textContent = `Rs ${calculateTotal(tables[id].orders)}`;
     })
 })
-let itemPrice = new Map();
-menuItems.forEach(item => {
-    itemPrice.set(item.name, item.price)
-});
-// console.log(itemPrice);
 
-
+//popup
 
 function displayPopup(table) {
     document.querySelector('.popcontent').style.display = 'block';
     let tableContent = document.querySelector('.ordertable');
     let currentTable = tables[table.parentElement.id - 1];
     let foodOrders = currentTable.orders;
-    // console.log(tables);
     document.getElementById('total').textContent = `Total:${currentTable.totalCost}`;
-    // console.log(foodOrders);
     let count = 1;
     for (let foodItem of foodOrders) {
         let row = document.createElement('tr');
-        row.setAttribute('id', `sno${count}`)
+        row.setAttribute('id', `sno`)
         let sno = document.createElement('td');
         sno.textContent = count;
         let item = document.createElement('td');
         item.textContent = foodItem[0];
         let price = document.createElement('td');
         price.textContent = itemPrice.get(item.textContent);
+        //quantity
         let quantity = document.createElement('td');
         let quantInput = document.createElement('input');
         quantInput.setAttribute('type', 'Number');
         quantInput.setAttribute('value', foodItem[1]);
         quantInput.setAttribute('min', 1);
         quantInput.setAttribute('max', 10);
+        //change quantity
         quantInput.addEventListener('change', () => {
             foodOrders.set(foodItem[0], quantInput.value);
-            let totalCost=calculateTotal();
+            let totalCost=calculateTotal(foodOrders);
             table.children[0].textContent=`Rs ${totalCost}`;
             let totalItems=countQuantity(tables[table.parentElement.id-1]);
             table.children[1].textContent=`Total Items:${totalItems}`;
             document.getElementById('total').textContent = `Total:${totalCost}`;
         })
         quantity.appendChild(quantInput);
+        //delete icon
         let deleteImage=document.createElement('img');
-        deleteImage.setAttribute('id',count);
         deleteImage.setAttribute('src','https://img.icons8.com/ios-glyphs/20/000000/filled-trash.png');
         let tabled=document.createElement('td');
         let imageButton=document.createElement('button');
+        imageButton.setAttribute('id','delete');
 
         imageButton.appendChild(deleteImage);
         tabled.appendChild(imageButton);
+        //appending to row 
         row.appendChild(sno);
         row.appendChild(item);
         row.appendChild(price);
         row.appendChild(quantity);
         row.appendChild(tabled);
-        tableContent.appendChild(row);
-        // imageButton.addEventListener('click',(event)=>{
-        //     let rowElement=document.getElementById(`sno${event.target.id}`);
-        //     let parent=rowElement.children[1].textContent;
-        //     // console.log(parent);
-        //     rowElement.remove();
-        //     let target=foodOrders.get(parent)
-        //     if(currentTable.totalCost>0)
-        //     currentTable.totalCost-=Number(itemPrice.get(parent))*Number(target);
-        //     foodOrders.set(target,0);
-        //     table.children[0].textContent=`Rs ${currentTable.totalCost}`;
-        //     let totalItems=countQuantity(tables[currentTable]);
-        //     table.children[1].textContent=`Total Items:${totalItems}`;
-        //     document.getElementById('total').textContent = `Total:${currentTable.totalCost}`;    
-        // });
+        tableContent.appendChild(row);    
         count++;
+        document.getElementById('total').textContent = `Total:${calculateTotal(foodOrders)}`;
     }
-    function calculateTotal() {
-        let total = 0;
-        for (let order of foodOrders) {
-            total += itemPrice.get(order[0]) * Number(order[1]);
-        }
-        return total;
-    }
+    //delete item in popup
+    imageButton=document.querySelectorAll('#delete');
+    imageButton.forEach(image=>{image.addEventListener('click',()=>{
+        let rowElement=image.parentElement.parentElement;
+        let parent=rowElement.children[1].textContent; 
+        let target=foodOrders.get(parent);
+        foodOrders.delete(parent);
+        let total=calculateTotal(foodOrders);
+        document.getElementById('total').textContent = `Total:${total}`;
+        table.children[0].textContent=`Rs ${total}`;
+        table.children[1].textContent=`Total Items:${countQuantity(currentTable)}`;
+        rowElement.remove();
+         let sNo=document.querySelectorAll('#sno');
+         let count=0;
+         sNo.forEach((serial)=>{
+             serial.children[0].textContent=++count;
+            })    
+    })});
 
-
-    // console.log(tableContent);
+    //close btn
     document.querySelector('#closebtn').addEventListener('click', () => {
-        // console.log(tableContent);
         while (tableContent.hasChildNodes()) {
             tableContent.removeChild(tableContent.children[0]);
         }
